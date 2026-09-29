@@ -1,2 +1,2 @@
-# cardano-stream-client
+# Cardano Stream clients
 
