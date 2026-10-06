@@ -1,0 +1,6 @@
+BCA Alert clients
+Copyright 2026 Alexander Diemand
+
+Licensed under the Apache License, Version 2.0 (SPDX-License-Identifier: Apache-2.0),
+see LICENSE. Third-party components used by the individual clients are listed
+in the NOTICE file of each client directory, e.g. client/prolog/NOTICE.

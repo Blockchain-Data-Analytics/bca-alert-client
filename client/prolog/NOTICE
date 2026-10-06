@@ -1,0 +1,46 @@
+BCA Alerts Prolog client
+Copyright 2026 Alexander Diemand
+
+The source code in this directory is licensed under the Apache License,
+Version 2.0 (SPDX-License-Identifier: Apache-2.0), see LICENSE.
+
+
+Third-party components
+======================
+
+The executable bca-alert-client and the Docker image built by the
+Dockerfile combine this client with the following components.
+
+Statically linked into bca-alert-client:
+
+  pl_mqtt v0.1.0             GPL-3.0-or-later
+    https://github.com/CodiePP/pl_mqtt/tree/v0.1.0
+  pl_kafka v0.1.0            GPL-3.0-or-later
+    https://github.com/CodiePP/pl_kafka/tree/v0.1.0
+  prolog-utilities v0.1.0    GPL-3.0-or-later
+    (pl_toolbox/src/json.pl)
+    https://github.com/CodiePP/prolog-utilities/tree/v0.1.0
+  GNU Prolog 1.5.0 runtime   LGPL-3.0-or-later OR GPL-2.0-or-later
+    https://www.gprolog.org/
+
+Dynamically linked, from Debian trixie packages:
+
+  libmosquitto1 2.0.21       EPL-2.0 OR BSD-3-Clause (Eclipse Distribution License 1.0)
+  librdkafka1 2.8.0          BSD-2-Clause
+  OpenSSL 3, glibc, libcurl, cyrus-sasl and further libraries that
+  librdkafka depends on, each under its own license.
+
+Also in the Docker image:
+
+  tini 0.19.0                MIT
+  ca-certificates            MPL-2.0 (certificate data), GPL-2.0-or-later
+  Debian trixie base image   various
+
+Because the GPL-3.0-or-later components are linked into the executable,
+the executable and the Docker image as a whole are distributed under the
+terms of the GNU General Public License, version 3 or later. The
+Apache-2.0 licensed client source is compatible with this. The
+corresponding source of the GPL components is at the URLs above.
+
+The Docker image contains the license texts in /usr/share/doc/bca-alert-client/
+and, for the Debian packages, in /usr/share/doc/<package>/copyright.
