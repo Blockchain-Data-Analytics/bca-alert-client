@@ -60,6 +60,7 @@ Credentials are taken from environment variables only.
 | `MQTT_tls` | mqtt | no | `true` |
 | `MQTT_cafile` | mqtt | no | first of the usual system CA bundles found |
 | `MQTT_client_id` | mqtt | no | random; when set, a persistent session keeps QoS 1 messages while offline |
+| `MQTT_watchdog` | mqtt | no | `1500`: seconds without any message before the client exits with status 3; `0` disables it |
 | `Kafka_brokers` | kafka | no | `kafka.blockchain-applied.com:9093` |
 | `Kafka_group_id` | kafka | no | `bca.<Customer_id>.prolog-client` (must start with `bca.<Customer_id>.`) |
 | `Kafka_offset_reset` | kafka | no | `earliest` (a new group replays the topic's retention); `latest` |
@@ -75,6 +76,9 @@ export Customer_id="12345-67890-..."
 # MQTT
 export Token=bca_...
 docker run --rm -e Token -e Customer_id bca-alert-client-prolog mqtt
+
+# MQTT, long running: restarted after the watchdog gives up (see Notes)
+docker run -d --restart unless-stopped -e Token -e Customer_id bca-alert-client-prolog mqtt
 
 # Kafka
 export Kafka_password=...
@@ -105,6 +109,16 @@ The client runs until stopped (Ctrl-C, or `docker stop`).
   A stopped consumer stays in the group until the broker's session timeout
   (45 s); a restart within that time waits for it.
 * The MQTT broker authenticates by token (username); the password is unused.
+* The MQTT client reconnects on its own after a lost connection and logs
+  `mqtt: connection lost` / `mqtt: connection restored` to stderr. The
+  server sends a heartbeat per network every 10 minutes, so as a last
+  resort a watchdog exits the client with status 3 when no message at all
+  arrived for `MQTT_watchdog` seconds (default 25 minutes). Run it under a
+  supervisor that restarts it, e.g. `docker run --restart unless-stopped`
+  (which cannot be combined with `--rm`). Events published while the
+  client was down are not replayed over MQTT (unless `MQTT_client_id` keeps
+  a persistent session); fetch them from the Cardano Alerts API with the
+  `last_event_id` of the last heartbeat seen.
 * Integers too large for GNU Prolog (e.g. in datums) are shown as strings
   in `data`.
 * This code has been produced with the help of AI, and reviewed and tested

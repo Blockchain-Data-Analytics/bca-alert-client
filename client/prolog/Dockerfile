@@ -63,8 +63,8 @@ RUN curl -fsSL -o /tmp/gprolog.tar.gz \
 
 # Prolog libraries by release tag; the sha256 of each tag's archive makes
 # a moved tag fail the build instead of changing the code
-ARG PL_MQTT_TAG=v0.1.0
-ARG PL_MQTT_SHA256=ba3d0d3e64b9b27167d7cb604c95b22deea2c1d341f85ab3423f2f3cec62a5c2
+ARG PL_MQTT_TAG=v0.1.1
+ARG PL_MQTT_SHA256=8358ee6b71053131c27a7dbc735667ffd5da0dd7f6b1fc1bc767b69327562a01
 ARG PL_KAFKA_TAG=v0.1.0
 ARG PL_KAFKA_SHA256=7a127346682b9ff85f0324f6bb3d5bd16be06c00141af8a4fdacd65f2f0491ba
 ARG PL_UTILS_TAG=v0.1.0
