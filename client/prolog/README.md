@@ -93,7 +93,7 @@ file `.env` (ignored by git and docker build) and use `--env-file .env`.
 output:
 
 ```
-2026-09-08T14:55:01.123+00:00 [mqtt/mainnet] event utxo_received  id=423726482049734665 slot=197313019 epoch=654 confirmations=-
+2026-09-08T14:55:01.123+00:00 [mqtt/mainnet] event utxo_received  id=423726482049734665 slot=197313019 block_time=2026-09-08T14:55:10Z epoch=654 confirmations=-
     address: addr1q8055...
     tx_hash: 5f2c0a...
     data:    {"lovelace":"1500000","assets":{},"output_index":0}

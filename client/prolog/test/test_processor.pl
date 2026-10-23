@@ -19,13 +19,17 @@ test :-
   ; format("FAILED: ~w~n", [Failed]), halt(1)
   ).
 
-test_event('{"type":"event","payload":{"id":423726482049734665,"detected_at":"2026-09-08T14:55:01.123+00:00","slot_no":197313019,"epoch_no":654,"tx_hash":"5f2c0a","address":"addr1q8055xyz","event_type":"utxo_received","network":"mainnet","confirmations":null,"data":{"lovelace":"1500000","assets":{},"output_index":0}}}').
+test_event('{"type":"event","payload":{"id":423726482049734665,"detected_at":"2026-09-08T14:55:01.123+00:00","slot_no":197313019,"epoch_no":654,"block_time":"2026-09-08T14:55:10Z","tx_hash":"5f2c0a","address":"addr1q8055xyz","event_type":"utxo_received","network":"mainnet","confirmations":null,"data":{"lovelace":"1500000","assets":{},"output_index":0}}}').
 test_heartbeat('{"type":"heartbeat","last_event_id":423726482049734665,"channel_status":"ok","network":"preprod","sent_at":"2026-09-08T15:05:00+00:00"}').
 
 test_case(event, (
   test_event(E),
   test_written(processor_handle(mqtt, E, []), W),
-  W == '2026-09-08T14:55:01.123+00:00 [mqtt/mainnet] event utxo_received  id=423726482049734665 slot=197313019 epoch=654 confirmations=-\n    address: addr1q8055xyz\n    tx_hash: 5f2c0a\n    data:    {"lovelace":"1500000","assets":{},"output_index":0}\n' )).
+  W == '2026-09-08T14:55:01.123+00:00 [mqtt/mainnet] event utxo_received  id=423726482049734665 slot=197313019 block_time=2026-09-08T14:55:10Z epoch=654 confirmations=-\n    address: addr1q8055xyz\n    tx_hash: 5f2c0a\n    data:    {"lovelace":"1500000","assets":{},"output_index":0}\n' )).
+% events stored before block_time existed carry "block_time": null
+test_case(event_without_block_time, (
+  test_written(processor_handle(mqtt, '{"type":"event","payload":{"id":1,"detected_at":"2026-09-08T14:55:01Z","slot_no":2,"epoch_no":3,"block_time":null,"tx_hash":"ab","address":"addr1x","event_type":"utxo_spent","network":"mainnet","confirmations":null}}', []), W),
+  W == '2026-09-08T14:55:01Z [mqtt/mainnet] event utxo_spent  id=1 slot=2 block_time=- epoch=3 confirmations=-\n    address: addr1x\n    tx_hash: ab\n' )).
 test_case(heartbeat, (
   test_heartbeat(H),
   test_written(processor_handle(kafka, H, []), W),

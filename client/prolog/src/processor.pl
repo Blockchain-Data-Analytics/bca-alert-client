@@ -12,7 +12,8 @@
 /*                                                                         */
 /* envelopes (one per message, same on MQTT and Kafka):                    */
 /*   {"type":"event","payload":{"id":..,"detected_at":..,"slot_no":..,     */
-/*     "epoch_no":..,"tx_hash":..,"address":..,"event_type":..,            */
+/*     "epoch_no":..,"block_time":..,"tx_hash":..,"address":..,            */
+/*     "event_type":..,                                                    */
 /*     "network":..,"confirmations":..,"data":{..}}}                       */
 /*   {"type":"heartbeat","last_event_id":..,"channel_status":..,           */
 /*     "network":..,"sent_at":..}                                          */
@@ -74,12 +75,14 @@ processor_event(Channel, Ev) :-
   processor_field(Ev, event_type, Type),
   processor_field(Ev, id, Id),
   processor_field(Ev, slot_no, Slot),
+  % time of the block holding the tx; null for events from before it was added
+  processor_field(Ev, block_time, BlockTime),
   processor_field(Ev, epoch_no, Epoch),
   processor_field(Ev, confirmations, Conf),
   processor_field(Ev, address, Addr),
   processor_field(Ev, tx_hash, Tx),
-  format("~a [~a/~a] event ~a  id=~w slot=~w epoch=~w confirmations=~w~n",
-         [At, Channel, Net, Type, Id, Slot, Epoch, Conf]),
+  format("~a [~a/~a] event ~a  id=~w slot=~w block_time=~w epoch=~w confirmations=~w~n",
+         [At, Channel, Net, Type, Id, Slot, BlockTime, Epoch, Conf]),
   format("    address: ~a~n", [Addr]),
   format("    tx_hash: ~a~n", [Tx]),
   ( processor_get(Ev, data, Data) ->
