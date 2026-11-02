@@ -22,7 +22,7 @@ The demo client is implemented in several languages:
 |language|webhook|MQTT|Kafka|API|
 |----|----|----|----|----|
 |C++ |  -  |  -  |  -  |  -  |
-|Go  |  -  |  -  |  -  |  -  |
+|[Go](client/go/) |  -  |  ✓  |  ✓  |  -  |
 |Rust |  -  |  -  |  -  |  -  |
 |Python |  -  |  -  |  -  |  -  |
 |[Prolog](client/prolog/) |  -  |  ✓  |  ✓  |  -  |

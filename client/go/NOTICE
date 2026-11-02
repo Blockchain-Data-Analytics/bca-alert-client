@@ -1,0 +1,33 @@
+BCA Alerts Go client
+Copyright 2026 Alexander Diemand
+
+The source code in this directory is licensed under the Apache License,
+Version 2.0 (SPDX-License-Identifier: Apache-2.0), see LICENSE.
+
+
+Third-party components
+======================
+
+Statically linked into bca-alert-client (Go modules, versions in go.mod):
+
+  github.com/eclipse/paho.mqtt.golang   EPL-2.0 OR BSD-3-Clause (Eclipse Distribution License 1.0)
+    https://github.com/eclipse-paho/paho.mqtt.golang
+  github.com/gorilla/websocket          BSD-2-Clause
+  github.com/twmb/franz-go              BSD-3-Clause
+  github.com/twmb/franz-go/pkg/kmsg     BSD-3-Clause
+  github.com/klauspost/compress         BSD-3-Clause (parts Apache-2.0, MIT)
+  github.com/pierrec/lz4/v4             BSD-3-Clause
+  golang.org/x/net, golang.org/x/sync   BSD-3-Clause
+  Go standard library and runtime       BSD-3-Clause
+
+Docker image:
+
+  gcr.io/distroless/static-debian13     various (ca-certificates: MPL-2.0 /
+                                        GPL-2.0-or-later certificate data;
+                                        base files, tzdata)
+
+None of the components is under a license that requires the executable to
+be distributed under other terms than the Apache License, Version 2.0.
+
+The Docker image contains the license texts of the Go modules in
+/usr/share/doc/bca-alert-client/third-party/.
