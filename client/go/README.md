@@ -61,6 +61,39 @@ When the queue of a sink is full, the listener waits for it: no alert is
 lost, but a stuck sink stalls the listener (and with MQTT, the broker may
 drop the connection). Keep `Handle` fast or hand over to a worker.
 
+On shutdown (Ctrl-C, `docker stop`) the sinks get 10 s (`Dispatcher.CloseTimeout`)
+to process what is queued; a sink that is still busy then is abandoned and
+its queued messages are dropped, so that a stuck sink cannot keep the client
+from exiting.
+
+Kafka offsets follow the sinks: a record is committed only after *all*
+sinks have returned from `Handle` for it, whether with an error (logged not retried) or not.
+A listener can do the same with
+`Dispatcher.DispatchAck(ctx, m, onDone)`.
+
+## Run the pre-built image
+
+Every change to `client/go` on `main` is published to the GitHub container
+registry, publicly: no login and no build needed. Tags: `latest` and
+`sha-<commit>`; use the latter to pin a version.
+
+```sh
+export Customer_id="12345-67890-..."
+
+# MQTT
+export Token=bca_...
+docker run --rm -e Token -e Customer_id ghcr.io/blockchain-data-analytics/bca-alert-client-go mqtt
+
+# Kafka
+export Kafka_password=...
+docker run --rm -e Kafka_password -e Customer_id ghcr.io/blockchain-data-analytics/bca-alert-client-go kafka
+```
+
+More options and the configuration variables are in [Configuration](#configuration)
+and [EXAMPLES](#examples) below, which use the locally built image name
+`bca-alert-client-go`; replace it with the registry name above to use the
+published image. `docker pull` fetches a newer `latest`.
+
 ## Build and test
 
 ```sh
@@ -88,10 +121,10 @@ defaults are those of the [Prolog client](../prolog/README.md#configuration).
 | `Token` | mqtt | yes | token from [token management](https://www.blockchain-applied.com/cardano-alerts-token-management/) |
 | `Kafka_password` | kafka | yes (not with `PLAINTEXT`) | SCRAM password handed out by BCA |
 | `Kafka_user` | kafka | no | `cust_<Customer_id>_kafka` |
-| `Network` | both | no | all; set `mainnet`, `preprod` or `preview` to only show that network |
+| `Network` | both | no | all; set `mainnet` or `preprod` to only show that network (any other value is an error, exit status 2) |
 | `MQTT_host` | mqtt | no | `mqtt.blockchain-applied.com` |
 | `MQTT_port` | mqtt | no | `8883` |
-| `MQTT_tls` | mqtt | no | `true` |
+| `MQTT_tls` | mqtt | no | `true`; switched off, the token travels unencrypted (a warning is logged unless the broker is `localhost`) |
 | `MQTT_cafile` | mqtt | no | system certificates; a PEM file replaces them |
 | `MQTT_client_id` | mqtt | no | random; when set, a persistent session keeps QoS 1 messages while offline |
 | `MQTT_watchdog` | mqtt | no | `1500`: seconds without any message before the client exits with status 3; `0` disables it |
@@ -140,8 +173,14 @@ The client runs until stopped (Ctrl-C, or `docker stop`); queued messages are st
 
 ## Notes
 
-* Kafka offsets are committed automatically every 5 s; after stopping the
-  client, the last few events may be delivered again on the next start.
+* Kafka: an offset is committed only after every sink has handled the
+  record (the commits go out every 5 s and on shutdown). After a crash or
+  kill, the records not yet handled by all sinks, and up to 5 s of handled
+  ones, are delivered again on the next start: at least once, so a sink must
+  cope with duplicates (the event `id` identifies them).
+* MQTT: a message is acknowledged to the broker (QoS 1) when it arrives, not
+  when the sinks are done with it. After a crash or kill, what is still
+  queued in the sinks (up to 256 messages per sink) is lost.
 * The MQTT broker authenticates by token (username); the password is unused.
 * The MQTT client reconnects on its own after a lost connection and logs
   `mqtt: connection lost` / `mqtt: connection restored` to stderr. The
@@ -156,6 +195,15 @@ The client runs until stopped (Ctrl-C, or `docker stop`); queued messages are st
 * `data` is kept as raw JSON, so integers beyond 64 bits (datums) survive.
 * This code has been produced with the help of AI, and reviewed and tested
   by the author.
+
+## Testing
+
+```sh
+go test ./...            # all packages
+go test -race ./...      # with the race detector, as the Dockerfile does
+go test -v ./alert       # one package, verbose
+go test -run TestDispatchAck -count=20 -race ./alert   # one test, repeated
+```
 
 ## Disclaimer
 

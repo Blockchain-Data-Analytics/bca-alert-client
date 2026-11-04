@@ -40,6 +40,10 @@ func run() int {
 	} else {
 		l, err = listener.NewKafka()
 	}
+	var network string
+	if err == nil {
+		network, err = alert.EnvNetwork()
+	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		return 2
@@ -51,19 +55,29 @@ func run() int {
 	// the sinks: every message goes to all of them
 	d := alert.NewDispatcher(256)
 	var console alert.Sink = sink.NewConsole(os.Stdout)
-	if n := alert.Env("Network", ""); n != "" {
-		console = alert.FilterNetwork(n, console)
+	if network != "" {
+		console = alert.FilterNetwork(network, console)
 	}
 	d.Add("console", console)
 
 	err = l.Run(ctx, d)
 	d.Close()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+	}
+	return exitCode(err)
+}
+
+// exitCode: 0 clean stop, 3 watchdog, 2 configuration, 1 anything else
+func exitCode(err error) int {
+	var ce *alert.ConfigError
 	switch {
 	case err == nil:
 		return 0
 	case errors.Is(err, listener.ErrWatchdog):
 		return 3
+	case errors.As(err, &ce):
+		return 2
 	}
-	fmt.Fprintln(os.Stderr, "error:", err)
 	return 1
 }

@@ -44,6 +44,11 @@ config_integer(Name, _, Int) :-
   ).
 config_integer(_, Default, Default).
 
+% known_network(?Name)
+% the Cardano networks a customer can subscribe to; all share one topic
+known_network(mainnet).
+known_network(preprod).
+
 % log_msg(+Format, +Args)
 % diagnostics go to stderr, so stdout carries only the processor's output
 log_msg(Format, Args) :-

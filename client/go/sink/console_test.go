@@ -27,6 +27,8 @@ func TestConsole(t *testing.T) {
 		{"heartbeat", "kafka", heartbeat,
 			"2026-09-08T15:05:00+00:00 [kafka/preprod] heartbeat  last_event_id=423726482049734665 channel_status=ok\n"},
 		{"not json", "mqtt", "not json", "mqtt not JSON: not json\n"},
+		{"wrong field type", "mqtt", `{"type":"event","payload":{"slot_no":"1"}}`,
+			"mqtt invalid message (field payload.slot_no: expected int64, got JSON string): {\"type\":\"event\",\"payload\":{\"slot_no\":\"1\"}}\n"},
 		{"unknown type", "mqtt", `{"type":"other","x":[true,null]}`, "mqtt unknown message: {\"type\":\"other\",\"x\":[true,null]}\n"},
 	} {
 		t.Run(c.name, func(t *testing.T) {

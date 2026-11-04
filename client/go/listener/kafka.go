@@ -56,7 +56,12 @@ func NewKafka() (*Kafka, error) {
 }
 
 // Run blocks until ctx is done (nil) or the broker cannot be reached.
-// Offsets are committed automatically every 5 s.
+//
+// A record is committed only after every sink has handled it: the record is
+// marked when the dispatcher reports it done, and the marks are committed
+// every 5 s and when Run ends. A crash redelivers what was not yet handled.
+// Run closes d before it returns, so that the sinks finish their queues
+// first; the offsets of those messages are still committed.
 func (l *Kafka) Run(ctx context.Context, d *alert.Dispatcher) error {
 	topic := "bca." + l.customerID + ".events"
 	opts := []kgo.Opt{
@@ -65,6 +70,8 @@ func (l *Kafka) Run(ctx context.Context, d *alert.Dispatcher) error {
 		kgo.ConsumerGroup(l.group),
 		kgo.ConsumeTopics(topic),
 		kgo.ConsumeResetOffset(l.offset),
+		// commit only the records marked after the sinks are done with them
+		kgo.AutoCommitMarks(),
 	}
 	if l.protocol != "PLAINTEXT" {
 		opts = append(opts, kgo.SASL(scram.Auth{User: l.user, Pass: l.password}.AsSha512Mechanism()))
@@ -89,6 +96,7 @@ func (l *Kafka) Run(ctx context.Context, d *alert.Dispatcher) error {
 	for {
 		fetches := cl.PollFetches(ctx)
 		if fetches.IsClientClosed() || ctx.Err() != nil {
+			drain(cl, d)
 			return nil
 		}
 		for _, e := range fetches.Errors() {
@@ -98,7 +106,17 @@ func (l *Kafka) Run(ctx context.Context, d *alert.Dispatcher) error {
 			alert.Log.Printf("kafka: %s/%d: %v", e.Topic, e.Partition, e.Err)
 		}
 		fetches.EachRecord(func(r *kgo.Record) {
-			d.Dispatch(ctx, alert.Parse("kafka", r.Value))
+			d.DispatchAck(ctx, alert.Parse("kafka", r.Value), func() { cl.MarkCommitRecords(r) })
 		})
+	}
+}
+
+// drain waits for the sinks, then commits the marked records
+func drain(cl *kgo.Client, d *alert.Dispatcher) {
+	d.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := cl.CommitMarkedOffsets(ctx); err != nil {
+		alert.Log.Printf("kafka: commit: %v", err)
 	}
 }

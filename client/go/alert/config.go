@@ -6,6 +6,7 @@ package alert
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -55,4 +56,18 @@ func EnvBool(name string, def bool) bool {
 		return true
 	}
 	return false
+}
+
+// KnownNetworks are the networks BCA runs brokers for.
+var KnownNetworks = []string{"mainnet", "preprod"}
+
+// EnvNetwork returns the optional Network filter: "" for all networks,
+// otherwise one of KnownNetworks. Anything else is a *ConfigError: a
+// mistyped name would drop every message without a hint.
+func EnvNetwork() (string, error) {
+	n := os.Getenv("Network")
+	if n == "" || slices.Contains(KnownNetworks, n) {
+		return n, nil
+	}
+	return "", &ConfigError{fmt.Sprintf("environment variable Network must be one of %v, got '%s'", KnownNetworks, n)}
 }

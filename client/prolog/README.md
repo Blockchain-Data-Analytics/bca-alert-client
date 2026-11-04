@@ -6,7 +6,7 @@ Only Docker. The image contains everything, pinned (see `Dockerfile`):
 
 * GNU Prolog 1.5.0
 * Kafka interface: [pl-kafka](https://github.com/CodiePP/pl_kafka) `v0.1.0`
-* MQTT interface: [pl-mqtt](https://github.com/CodiePP/pl_mqtt) `v0.1.0`
+* MQTT interface: [pl-mqtt](https://github.com/CodiePP/pl_mqtt) `v0.1.1`
 * JSON: `pl_toolbox/src/json.pl` of [prolog-utilities](https://github.com/CodiePP/prolog-utilities) `v0.1.0`
 * libmosquitto, librdkafka from Debian trixie
 
@@ -54,7 +54,7 @@ Credentials are taken from environment variables only.
 | `Token` | mqtt | yes | token from [token management](https://www.blockchain-applied.com/cardano-alerts-token-management/) |
 | `Kafka_password` | kafka | yes | SCRAM password handed out by BCA |
 | `Kafka_user` | kafka | no | `cust_<Customer_id>_kafka` |
-| `Network` | both | no | all; set `mainnet`, `preprod` or `preview` to only show that network |
+| `Network` | both | no | all; set `mainnet` or `preprod` to only show that network (any other value is an error, exit status 2) |
 | `MQTT_host` | mqtt | no | `mqtt.blockchain-applied.com` |
 | `MQTT_port` | mqtt | no | `8883` |
 | `MQTT_tls` | mqtt | no | `true` |
@@ -146,7 +146,7 @@ Dependencies and their licenses:
 
 | component | version | license (SPDX) | use |
 |----|----|----|----|
-| [pl_mqtt](https://github.com/CodiePP/pl_mqtt) | v0.1.0 | `GPL-3.0-or-later` | linked into the executable |
+| [pl_mqtt](https://github.com/CodiePP/pl_mqtt) | v0.1.1 | `GPL-3.0-or-later` | linked into the executable |
 | [pl_kafka](https://github.com/CodiePP/pl_kafka) | v0.1.0 | `GPL-3.0-or-later` | linked into the executable |
 | [prolog-utilities](https://github.com/CodiePP/prolog-utilities) (`pl_toolbox/src/json.pl`) | v0.1.0 | `GPL-3.0-or-later` | linked into the executable |
 | [GNU Prolog](https://www.gprolog.org/) runtime | 1.5.0 | `LGPL-3.0-or-later OR GPL-2.0-or-later` | linked into the executable |

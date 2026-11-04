@@ -4,7 +4,7 @@
 /* Copyright 2026 Alexander Diemand                                        */
 /* SPDX-License-Identifier: Apache-2.0                                     */
 /*                                                                         */
-/*   $ make test                                                           */
+/*   $ docker build --target test --progress=plain .                       */
 /*                                                                         */
 /* JSON itself is tested in prolog-utilities (pl_toolbox: make check).     */
 /* exits with status 0 on success, 1 on failure.                          */
@@ -54,6 +54,10 @@ test_case(network_filter, (
   ( processor_skip(H1), \+ processor_skip(H2), processor_skip(E1) -> R = ok ; R = ko ),
   retractall(processor_network(_)),
   R == ok )).
+
+test_case(known_network, (
+  known_network(mainnet), known_network(preprod),
+  \+ known_network(preview), \+ known_network(mainet), \+ known_network('Mainnet') )).
 
 test_written(Goal, Atom) :-
   open('/tmp/bca_alert_client_test.out', write, S),

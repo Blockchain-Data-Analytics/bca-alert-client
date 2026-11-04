@@ -84,7 +84,7 @@ receiver_mqtt_cafile(F) :-
 
 % failure driven, runs until the process is stopped. pl_mqtt reconnects
 % and renews the subscription on its own; the watchdog covers the cases
-% where that does not happen (e.g. pl_mqtt v0.1.0, whose network thread
+% where that does not happen (e.g. pl_mqtt v0.1.1, whose network thread
 % ends silently after a TLS error, or a token that is no longer accepted).
 receiver_mqtt_loop(Client) :-
   config_integer('MQTT_watchdog', 1500, Limit),

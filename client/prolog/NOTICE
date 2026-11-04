@@ -13,8 +13,8 @@ Dockerfile combine this client with the following components.
 
 Statically linked into bca-alert-client:
 
-  pl_mqtt v0.1.0             GPL-3.0-or-later
-    https://github.com/CodiePP/pl_mqtt/tree/v0.1.0
+  pl_mqtt v0.1.1             GPL-3.0-or-later
+    https://github.com/CodiePP/pl_mqtt/tree/v0.1.1
   pl_kafka v0.1.0            GPL-3.0-or-later
     https://github.com/CodiePP/pl_kafka/tree/v0.1.0
   prolog-utilities v0.1.0    GPL-3.0-or-later

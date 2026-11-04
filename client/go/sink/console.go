@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -25,7 +26,12 @@ func (c *Console) Handle(_ context.Context, m alert.Message) error {
 	var b strings.Builder
 	switch {
 	case m.ParseErr != nil:
-		fmt.Fprintf(&b, "%s not JSON: %s\n", m.Channel, m.Raw)
+		var fe *alert.FieldError
+		if errors.As(m.ParseErr, &fe) {
+			fmt.Fprintf(&b, "%s invalid message (%v): %s\n", m.Channel, fe, m.Raw)
+		} else {
+			fmt.Fprintf(&b, "%s not JSON: %s\n", m.Channel, m.Raw)
+		}
 	case m.Event != nil:
 		ev := m.Event
 		fmt.Fprintf(&b, "%s [%s/%s] event %s  id=%s slot=%s block_time=%s epoch=%s confirmations=%s\n",

@@ -6,6 +6,7 @@ package listener
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/Blockchain-Data-Analytics/bca-alert-client/client/go/alert"
 )
@@ -60,5 +61,33 @@ func TestNewKafkaConfig(t *testing.T) {
 	t.Setenv("Kafka_password", "")
 	if _, err := NewKafka(); err != nil {
 		t.Errorf("PLAINTEXT needs no password: %v", err)
+	}
+}
+
+func TestWatchdogExpired(t *testing.T) {
+	now := time.Unix(10000, 0)
+	for _, c := range []struct {
+		silence time.Duration
+		limit   int
+		want    bool
+	}{
+		{0, 1500, false},
+		{1499 * time.Second, 1500, false},
+		{1500 * time.Second, 1500, true},
+		{3 * time.Hour, 1500, true},
+		{3 * time.Hour, 0, false}, // 0 switches it off
+	} {
+		quiet, got := watchdogExpired(now.Add(-c.silence), now, c.limit)
+		if got != c.want || quiet != c.silence {
+			t.Errorf("silence %v limit %d: got %v (%v), want %v", c.silence, c.limit, got, quiet, c.want)
+		}
+	}
+}
+
+func TestIsLocal(t *testing.T) {
+	for host, want := range map[string]bool{"localhost": true, "127.0.0.1": true, "::1": true, "mqtt.blockchain-applied.com": false, "10.0.0.5": false} {
+		if isLocal(host) != want {
+			t.Errorf("isLocal(%q) != %v", host, want)
+		}
 	}
 }

@@ -31,7 +31,7 @@ main_usage :-
             , '  Customer_id      your Cardano Alerts customer id (both channels)'
             , '  Token            your Cardano Alerts token (mqtt)'
             , '  Kafka_password   your Kafka password (kafka)'
-            , '  Network          optional: only show mainnet, preprod or preview'
+            , '  Network          optional: only show mainnet or preprod'
             , 'see README.md for optional settings'
             ]),
     format(user_error, "~a~n", [L]),

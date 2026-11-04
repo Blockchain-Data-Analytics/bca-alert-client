@@ -22,11 +22,19 @@
 :- dynamic(processor_network/1).
 
 % processor_init
-% optional env. var. Network (mainnet, preprod, preview): all networks
+% optional env. var. Network (mainnet, preprod): all networks
 % share one topic per customer, so messages of other networks are skipped
 processor_init :-
   retractall(processor_network(_)),
-  ( config_env('Network', N) -> assertz(processor_network(N)) ; true ).
+  ( config_env('Network', N) ->
+      ( known_network(N) -> true
+      ; findall(K, known_network(K), Known),
+        log_msg("error: environment variable Network must be one of ~w, got '~a'~n", [Known, N]),
+        halt(2)
+      ),
+      assertz(processor_network(N))
+  ; true
+  ).
 
 % processor_handle(+Channel, +Payload, +Meta)
 % never fails: a broken message must not stop the receiver loop

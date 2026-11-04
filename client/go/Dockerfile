@@ -37,7 +37,7 @@ COPY alert ./alert
 COPY listener ./listener
 COPY sink ./sink
 COPY cmd ./cmd
-RUN go vet ./... && go test -race ./...
+RUN test -z "$(gofmt -l .)" && go vet ./... && go test -race ./...
 
 # --- build stage: based on test, so the client is only built if tests pass -
 

@@ -13,6 +13,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"sync/atomic"
 	"time"
@@ -53,6 +54,9 @@ func NewMQTT() (*MQTT, error) {
 	}
 	l.useTLS = alert.EnvBool("MQTT_tls", true)
 	l.clientID = alert.Env("MQTT_client_id", "")
+	if !l.useTLS && !isLocal(l.host) {
+		alert.Log.Printf("warning: MQTT_tls is off: the token is sent unencrypted to %s", l.host)
+	}
 	l.tlsConfig = &tls.Config{MinVersion: tls.VersionTLS12}
 	if f := alert.Env("MQTT_cafile", ""); f != "" {
 		pem, err := os.ReadFile(f)
@@ -141,12 +145,27 @@ func (l *MQTT) Run(ctx context.Context, d *alert.Dispatcher) error {
 		case err := <-errc:
 			return err
 		case <-tick.C:
-			quiet := time.Since(time.Unix(last.Load(), 0))
-			if l.watchdog > 0 && quiet >= time.Duration(l.watchdog)*time.Second {
+			if quiet, expired := watchdogExpired(time.Unix(last.Load(), 0), time.Now(), l.watchdog); expired {
 				alert.Log.Printf("mqtt: watchdog: no message for ~%ds (MQTT_watchdog=%d, connected=%t), exiting",
 					int(quiet.Seconds()), l.watchdog, client.IsConnectionOpen())
 				return ErrWatchdog
 			}
 		}
 	}
+}
+
+// watchdogExpired: no message since last for at least limit seconds;
+// a limit of 0 switches the watchdog off
+func watchdogExpired(last, now time.Time, limit int) (quiet time.Duration, expired bool) {
+	quiet = now.Sub(last)
+	return quiet, limit > 0 && quiet >= time.Duration(limit)*time.Second
+}
+
+// isLocal: the broker runs on this machine, so nothing crosses the network
+func isLocal(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }

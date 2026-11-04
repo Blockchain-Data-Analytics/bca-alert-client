@@ -23,6 +23,10 @@ func TestParse(t *testing.T) {
 	if m = Parse("mqtt", []byte("nope")); m.ParseErr == nil || string(m.Raw) != "nope" || m.Network() != "" {
 		t.Errorf("not json: %+v", m)
 	}
+	var fe *FieldError
+	if errors.As(Parse("mqtt", []byte("nope")).ParseErr, &fe) {
+		t.Errorf("not JSON must not be a FieldError")
+	}
 	if m = Parse("mqtt", []byte(`{"type":"other"}`)); m.Type != "other" || m.Event != nil || m.Heartbeat != nil {
 		t.Errorf("unknown: %+v", m)
 	}
@@ -111,4 +115,120 @@ func TestDispatcherBlocksWhenFull(t *testing.T) {
 	}
 	close(release)
 	d.Close()
+}
+
+// a stuck sink must not keep Close from returning
+func TestDispatcherCloseTimeout(t *testing.T) {
+	d := NewDispatcher(1)
+	d.CloseTimeout = 100 * time.Millisecond
+	release := make(chan struct{})
+	defer close(release)
+	d.Add("stuck", SinkFunc(func(context.Context, Message) error { <-release; return nil }))
+	d.Dispatch(context.Background(), Message{})
+	returned := make(chan struct{})
+	go func() { d.Close(); close(returned) }()
+	select {
+	case <-returned:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Close hangs on a stuck sink")
+	}
+}
+
+// Dispatch after Close, and while Close runs, must not panic and must not block
+func TestDispatcherDispatchAfterClose(t *testing.T) {
+	d := NewDispatcher(1)
+	d.CloseTimeout = 100 * time.Millisecond
+	release := make(chan struct{})
+	defer close(release)
+	d.Add("stuck", SinkFunc(func(context.Context, Message) error { <-release; return nil }))
+	d.Dispatch(context.Background(), Message{})
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() { defer wg.Done(); d.Dispatch(context.Background(), Message{}) }() // blocked: queue full
+	}
+	d.Close()
+	wg.Wait() // returns because the dispatcher is closed
+	d.Dispatch(context.Background(), Message{})
+}
+
+// onDone comes once per message, in order, after every sink handled it,
+// also if a sink fails or panics
+func TestDispatchAck(t *testing.T) {
+	d := NewDispatcher(8)
+	var mu sync.Mutex
+	handled := map[string]int{}
+	count := func(name string, delay int, err bool) Sink {
+		return SinkFunc(func(_ context.Context, m Message) error {
+			mu.Lock()
+			handled[name+string(m.Raw)]++
+			mu.Unlock()
+			time.Sleep(time.Duration(delay) * time.Millisecond) // sinks of different speed
+			if err {
+				return errors.New("boom")
+			}
+			return nil
+		})
+	}
+	d.Add("a", count("a", 0, false))
+	d.Add("fails", count("fails", 1, true))
+	d.Add("panics", SinkFunc(func(context.Context, Message) error { panic("boom") }))
+	d.Add("slow", count("slow", 3, false))
+	var order []int
+	var omu sync.Mutex
+	const n = 20
+	for i := 0; i < n; i++ {
+		i := i
+		d.DispatchAck(context.Background(), Message{Raw: []byte{byte('A' + i)}}, func() {
+			mu.Lock()
+			for _, name := range []string{"a", "fails", "slow"} {
+				if handled[name+string(rune('A'+i))] != 1 {
+					t.Errorf("onDone(%d) before sink %s handled it", i, name)
+				}
+			}
+			mu.Unlock()
+			omu.Lock()
+			order = append(order, i)
+			omu.Unlock()
+		})
+	}
+	d.Close()
+	omu.Lock()
+	defer omu.Unlock()
+	if len(order) != n {
+		t.Fatalf("onDone called %d times, want %d", len(order), n)
+	}
+	for i, v := range order {
+		if v != i {
+			t.Fatalf("onDone out of order: %v", order)
+		}
+	}
+}
+
+// valid JSON with a field of the wrong type names the field and both types
+func TestParseFieldError(t *testing.T) {
+	for _, c := range []struct{ in, want string }{
+		{`{"type":"event","payload":{"slot_no":"197"}}`, "field payload.slot_no: expected int64, got JSON string"},
+		{`{"type":"event","payload":{"network":5}}`, "field payload.network: expected string, got JSON number"},
+		{`{"type":"heartbeat","last_event_id":"x"}`, "field last_event_id: expected int64, got JSON string"},
+		{`{"type":7}`, "field type: expected string, got JSON number"},
+		{`[1]`, "field (message): expected alert.envelope, got JSON array"},
+	} {
+		m := Parse("mqtt", []byte(c.in))
+		var fe *FieldError
+		if !errors.As(m.ParseErr, &fe) || fe.Error() != c.want {
+			t.Errorf("%s: got %v, want %s", c.in, m.ParseErr, c.want)
+		}
+	}
+}
+
+func TestEnvNetwork(t *testing.T) {
+	for in, ok := range map[string]bool{"": true, "mainnet": true, "preprod": true, "preview": false, "mainet": false, "Mainnet": false} {
+		t.Setenv("Network", in)
+		n, err := EnvNetwork()
+		var ce *ConfigError
+		if ok && (err != nil || n != in) || !ok && !errors.As(err, &ce) {
+			t.Errorf("Network=%q: %q, %v", in, n, err)
+		}
+	}
 }

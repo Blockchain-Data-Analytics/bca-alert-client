@@ -29,7 +29,7 @@ func (f SinkFunc) Handle(ctx context.Context, m Message) error { return f(ctx, m
 var Log = log.New(os.Stderr, "", log.LstdFlags)
 
 // FilterNetwork passes on only the messages of one network (mainnet,
-// preprod, preview); all networks share one topic per customer. Messages
+// preprod); all networks share one topic per customer. Messages
 // without a network are passed on.
 func FilterNetwork(network string, next Sink) Sink {
 	return SinkFunc(func(ctx context.Context, m Message) error {
