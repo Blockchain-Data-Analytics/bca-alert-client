@@ -23,7 +23,8 @@ ARG RUNTIME_IMAGE=gcr.io/distroless/static-debian13:nonroot@sha256:25ac8f0c3b233
 
 # --- deps stage: modules ---------------------------------------------------
 
-FROM ${GO_IMAGE} AS deps
+# runs natively on the build host; Go cross-compiles for the target (no emulation)
+FROM --platform=$BUILDPLATFORM ${GO_IMAGE} AS deps
 # never fetch another toolchain than the one of the image
 ENV GOTOOLCHAIN=local GOFLAGS=-mod=readonly
 WORKDIR /build
@@ -42,7 +43,9 @@ RUN test -z "$(gofmt -l .)" && go vet ./... && go test -race ./...
 # --- build stage: based on test, so the client is only built if tests pass -
 
 FROM test AS build
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/bca-alert-client ./cmd/bca-alert-client && \
+ARG TARGETOS TARGETARCH
+ENV CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH
+RUN go build -trimpath -ldflags="-s -w" -o /out/bca-alert-client ./cmd/bca-alert-client && \
     go list -deps -f '{{with .Module}}{{if not .Main}}{{.Path}} {{.Dir}}{{end}}{{end}}' ./cmd/bca-alert-client | sort -u | \
     while read -r path dir; do \
       mkdir -p "/licenses/$path" && cp "$dir"/LICENSE* "$dir"/NOTICE* "/licenses/$path/" 2>/dev/null || true; \
